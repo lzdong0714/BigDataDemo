@@ -171,6 +171,11 @@ class DemoProcess(sc:SparkContext, config: Config) extends java.io.Serializable 
 
   }
 
+  def hbaseRead(): Unit ={
+    val sparkSession = SparkSession.builder().appName("instrument").getOrCreate()
+
+  }
+
   def demo_test_1()={
     val sparkSession = SparkSession.builder().appName("instrument").getOrCreate()
     val dfSeq = Seq(
