@@ -1,20 +1,15 @@
 package demo.process
 
 import java.sql.Timestamp
-import java.time.{LocalDateTime, ZoneId}
 
 import com.yunheit.common.util.StringUtil
 import demo.Submit.Config
 import demo.util.BaseUtil
-import org.apache.http.conn.scheme.Scheme
-import org.apache.spark
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row, SQLContext, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
-
-import scala.collection.mutable.ListBuffer
 
 class DemoProcess(sc:SparkContext, config: Config) extends java.io.Serializable {
   val inputPath = BaseUtil.handle_OS_path(config.input)
@@ -22,8 +17,8 @@ class DemoProcess(sc:SparkContext, config: Config) extends java.io.Serializable 
 
   def localProcess(): Unit = {
     val dataFrame = instrumentProcessMySQL()
+//    instrumentProcess(dataFrame)
     instrumentProcess(dataFrame)
-//    instrumentProcess()
 //    demoProcess()
 //    demo_test_1()
 
@@ -38,7 +33,7 @@ class DemoProcess(sc:SparkContext, config: Config) extends java.io.Serializable 
       .option("driver", "com.mysql.cj.jdbc.Driver").option("dbtable", "work_history")//*****是表名
       .option("user", "hnty").option("password", "Hnty2018!@").load()
 
-    val count = 20000
+    val count = 2000
 
     jdbcDF.createTempView("work_history_tmp")
 //    val data_selected = jdbcDF.select("instrument_id","report_time","arrived_time","created_time",
