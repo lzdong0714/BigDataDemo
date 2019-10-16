@@ -1,6 +1,5 @@
 package demo
-import demo.process.DemoProcess
-import org.apache.spark.sql.SparkSession
+import process.{DemoProcess, InstrumentAnalyzer}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j
 import org.slf4j.LoggerFactory
@@ -21,7 +20,7 @@ object MainProcess {
   def operation(config: Submit.Config): Unit =
   {
 
-    val sparkConf: SparkConf = new SparkConf().setAppName(s"carclue")
+    val sparkConf: SparkConf = new SparkConf().setAppName(s"demo")
 
     if(config.model=="local") {
       logger.info("work in local model")
@@ -35,6 +34,14 @@ object MainProcess {
       val sc: SparkContext = new SparkContext(sparkConf)
       val manager = new DemoProcess(sc, config)
       manager.clusterProcess(sc,config)
+    }else if(config.model == "instrument"){
+      logger.info("work in local model")
+      logger.info(s"work in ${config.model} analyzer")
+      sparkConf.setMaster("local[*]")
+      sparkConf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      val sc: SparkContext = new SparkContext(sparkConf)
+      val instrumentAnalyzer = new InstrumentAnalyzer(sc, config)
+      instrumentAnalyzer.process()
     }
   }
 

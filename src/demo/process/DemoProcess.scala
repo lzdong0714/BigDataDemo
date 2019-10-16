@@ -86,6 +86,7 @@ class DemoProcess(sc:SparkContext, config: Config) extends java.io.Serializable 
         .groupByKey()
         .cache()
 
+    //时间连续
     val rdd_time_agg = rdd_step_1
         .map(item=>{
           val timeIterater = item._2.map(item => item._1)
@@ -94,6 +95,8 @@ class DemoProcess(sc:SparkContext, config: Config) extends java.io.Serializable 
         })
         .flatMapValues(x => x)
 
+
+    //空间连续
     val rdd_local_agg =rdd_step_1
         .map(item=>{
           val localIterter = item._2.map(item => BaseUtil.sliceLocalStr(item._2))
@@ -102,11 +105,12 @@ class DemoProcess(sc:SparkContext, config: Config) extends java.io.Serializable 
         })
         .flatMapValues(x => x)
 
+    // 时间空间一致连续
     val rdd_local_time =
       rdd_step_1
       .map(item=>{
         val iterator = item._2
-        val tuples = BaseUtil.timeAndLocationContinuous(iterator)
+        val tuples = BaseUtil.timeAndLocationContinuous(iterator,interval)
         (item._1,tuples)
       })
       .flatMapValues(x => x)
