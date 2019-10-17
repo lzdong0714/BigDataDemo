@@ -3,17 +3,19 @@ package demo.process
 import java.sql.Timestamp
 
 import demo.Submit.Config
+import demo.schema.MeasureDataOutSchema
 import demo.util.BaseUtil
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
 class InstrumentAnalyzer(sc:SparkContext, config: Config) extends java.io.Serializable {
 
   def process(): Unit ={
+    val  instrumentId = "QB91G3S01000100"
 //    val dateFrameWork = instrumentWorkMySQL("LY50Q88888881")
-
-    val dataFrameMeasure = instrumentMeasureMySQL("QB91G201809001")
+    val dataFrameMeasure = instrumentMeasureMySQL(instrumentId)
 
     val rddStepOne = processStepOne(dataFrameMeasure)
 
@@ -40,7 +42,6 @@ class InstrumentAnalyzer(sc:SparkContext, config: Config) extends java.io.Serial
     var longitude:Double = 0.0
     var latitude:Double = 0.0
     var altiude: Double = 0.0
-    var workTime:Long = 0
     var dataItem:String = ""
 //    var values:StringBuffer =new StringBuffer()
     val rddList = dataFrameList.map(dataFrame=>{
@@ -55,19 +56,19 @@ class InstrumentAnalyzer(sc:SparkContext, config: Config) extends java.io.Serial
 
 
           val items = analyzerUtil.parseItem(dataItem)
-          (instrumentId,reporterTime,workTime,longitude,latitude,altiude,
+          (instrumentId,reporterTime,longitude,latitude,altiude,
             items)
         })
           .filter(tuple=>{
-            tuple._7.size==8
+            tuple._6.size==8
           })
           .map(tuple=>{
-            val items = tuple._7
+            val items = tuple._6
             val valueList = items.map(dataItem=>{
               dataItem.Value
             })
 
-            (instrumentId,reporterTime,workTime,longitude,latitude,altiude,
+            (instrumentId,reporterTime,longitude,latitude,altiude,
               valueList.head,valueList.apply(1),valueList.apply(2),valueList.apply(3),valueList.apply(4),
               valueList.apply(5),valueList.apply(6),valueList.apply(7))
           })
@@ -75,12 +76,25 @@ class InstrumentAnalyzer(sc:SparkContext, config: Config) extends java.io.Serial
     })
 
     var index:Int = 0
-    val path:String = "D:\\myproject\\bigdatademo\\demodata\\output"
+//    val path:String = "D:\\myproject\\bigdatademo\\demodata\\output"
+    val path:String = s"D:\\workproject\\工程展示\\仪器分析\\data_result\\output"
     rddList.foreach(itemRdd=>{
       index = index+1
+      val rowRdd=itemRdd.map(tuple=>{
 
+        Row(tuple._1,tuple._2,tuple._3,tuple._4,tuple._5,tuple._6,tuple._7,tuple._8,tuple._9,tuple._10,
+          tuple._11,tuple._12,tuple._13)
+      })
 
-      itemRdd.saveAsTextFile(path+s"${index}")
+      val data = sparkSession.createDataFrame(rowRdd,MeasureDataOutSchema.apply)
+        data.write
+//        .option("delimiter","|")
+        .option("header","true")
+        .format("com.databricks.spark.csv")
+        .save(path+s"cvs_$index")
+
+//          .write.csv(path+s"cvs_${index}")
+//      itemRdd.saveAsTextFile(path+s"${index}")
     })
   }
 
