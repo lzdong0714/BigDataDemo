@@ -23,13 +23,65 @@ class InstrumentAnalyzer(sc:SparkContext, config: Config) extends java.io.Serial
   //仪器数据处理 1 根据时间划分任务时段 2 提取任务时段的地址信息 3 根据任务时段获取数据分析
   def processStepOne(dataFrame: DataFrame): RDD[(String,(Timestamp,Timestamp,(Double,Double,Double)))] ={
     val taskRDD = divideBy(dataFrame)
+    taskRDD.take(20).foreach(println)
     val workRDD = workTimeFilter(taskRDD,60)
     workRDD
   }
 
   def processStepTwo(dataFrame: DataFrame,rdd:RDD[(String,(Timestamp,Timestamp,(Double,Double,Double)))]): Unit ={
     val dataFrameList = getInfoByTimeWindow(rdd,instrumentMeasureTimeWindow)
+    tmpFunc(dataFrameList)
+  }
 
+  def tmpFunc(dataFrameList:List[DataFrame]): Unit ={
+    val analyzerUtil = new AnalyzerUtil
+    var instrumentId:String = ""
+    var reporterTime:Timestamp = null
+    var longitude:Double = 0.0
+    var latitude:Double = 0.0
+    var altiude: Double = 0.0
+    var workTime:Long = 0
+    var dataItem:String = ""
+//    var values:StringBuffer =new StringBuffer()
+    val rddList = dataFrameList.map(dataFrame=>{
+      val rdd=dataFrame.rdd
+        .map(row=>{
+          instrumentId = row.getAs[String](0)
+          reporterTime = row.getAs[Timestamp](1)
+          longitude = row.getAs[Double](4)
+          latitude = row.getAs[Double](5)
+          altiude = row.getAs[Double](6)
+          dataItem = row.getAs[String](7)
+
+
+          val items = analyzerUtil.parseItem(dataItem)
+          (instrumentId,reporterTime,workTime,longitude,latitude,altiude,
+            items)
+        })
+          .filter(tuple=>{
+            tuple._7.size==8
+          })
+          .map(tuple=>{
+            val items = tuple._7
+            val valueList = items.map(dataItem=>{
+              dataItem.Value
+            })
+
+            (instrumentId,reporterTime,workTime,longitude,latitude,altiude,
+              valueList.head,valueList.apply(1),valueList.apply(2),valueList.apply(3),valueList.apply(4),
+              valueList.apply(5),valueList.apply(6),valueList.apply(7))
+          })
+      rdd
+    })
+
+    var index:Int = 0
+    val path:String = "D:\\myproject\\bigdatademo\\demodata\\output"
+    rddList.foreach(itemRdd=>{
+      index = index+1
+
+
+      itemRdd.saveAsTextFile(path+s"${index}")
+    })
   }
 
   /**
@@ -70,13 +122,16 @@ class InstrumentAnalyzer(sc:SparkContext, config: Config) extends java.io.Serial
     jdbcDF.option("dbtable", "measure_history")//*****是表名
       .load()
       .createTempView("measure_history_tmp")
-    val data_selected=sparkSession.sql(s"SELECT instrument_id, report_time,arrived_time,created_time,longitude,latitude,altitude" +
+    val data_selected=sparkSession.sql(s"SELECT instrument_id, report_time,arrived_time,created_time," +
+      s"longitude,latitude,altitude,data_json" +
       s" FROM measure_history_tmp WHERE instrument_id = '${instrumentID}' ")
 
-    data_selected.cache()
+    data_selected
   }
+
   def instrumentMeasureTimeWindow(instrumentID:String, startTime:Timestamp, endTime:Timestamp):DataFrame={
-    val data_selected=sparkSession.sql(s"SELECT instrument_id, report_time,arrived_time,created_time,longitude,latitude,altitude" +
+    val data_selected=sparkSession.sql(s"SELECT instrument_id, report_time,arrived_time,created_time," +
+      s"longitude,latitude,altitude,data_json" +
       s" FROM measure_history_tmp WHERE instrument_id = '${instrumentID}' AND report_time BETWEEN '${startTime}' AND '${endTime}' ")
     data_selected
   }
@@ -99,7 +154,7 @@ class InstrumentAnalyzer(sc:SparkContext, config: Config) extends java.io.Serial
         reporterTime = row.getAs[Timestamp](1)
         longitude = row.getAs[Double](4)
         latitude = row.getAs[Double](5)
-        altiude = row.getAs[Double](6).toDouble
+        altiude = row.getAs[Double](6)
         (instrumentId,(reporterTime,s"${longitude}|${latitude}|${altiude}"))
       })
         .groupByKey()
@@ -156,6 +211,7 @@ class InstrumentAnalyzer(sc:SparkContext, config: Config) extends java.io.Serial
         //执行rdd 中的数据作为参数，但是rdd是一个transform的算子，数据没有序列化，所以先做action算子下的collect
         // 然后调用函数参数
       .map(item=>{
+        println("start:|"+item._2._1+"|"+item._2._2)
         f(item._1,item._2._1,item._2._2)
       })
     ret

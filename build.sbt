@@ -24,6 +24,7 @@ lazy val Demo = (project in file("src/demo"))
 //    libraryDependencies += "org.scalaj" %% "scalaj-http" % "2.3.0",
     libraryDependencies += "log4j" % "log4j" % "1.2.14" ,
     libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.2"% "provided" ,
+    libraryDependencies += "org.json4s" %% "json4s-native" % "3.6.7",
     
     libraryDependencies += "mysql" % "mysql-connector-java" % "8.0.11" ,
 
@@ -46,6 +47,7 @@ lazy val EasyRule = (project in file("src/easyrule"))
     libraryDependencies += "org.jeasy" % "easy-rules-core" % "3.2.0",
     libraryDependencies += "org.jeasy" % "easy-rules-mvel" % "3.2.0",
     libraryDependencies += "org.jeasy" % "easy-rules-support" % "3.2.0",
+    libraryDependencies += "org.json4s" %% "json4s-native" % "3.6.7",
 
     // Assembly sbt ";Demo CarClue;clean;assembly"
     resourceDirectory in Compile := baseDirectory.value / "resource",

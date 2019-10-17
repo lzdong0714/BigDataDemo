@@ -162,7 +162,7 @@ object BaseUtil{
   def isWorkTimeContinuous(startTime: Timestamp,endTime: Timestamp,interval:Long):Boolean={
     val time_diff = endTime.getTime - startTime.getTime
     //小于时间间隔，判定为连续数据
-    Math.abs(time_diff/1000)<interval
+    Math.abs(time_diff/1000)>interval
   }
 
 
